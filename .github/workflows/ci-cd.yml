@@ -17,9 +17,9 @@ jobs:
         with:
           node-version: '20'
 
-      - run: npm install
+      - run: yarn install
 
-      - run: npm run build
+      - run: yarn build
   # test:
   #   name: Run Tests
   #   runs-on: ubuntu-latest
