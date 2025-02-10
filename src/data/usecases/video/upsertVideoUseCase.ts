@@ -33,7 +33,10 @@ export class UpsertVideoUseCase implements IUpsertVideoUseCase {
 
     await this.cloudMessaging.send({
       MessageBody: JSON.stringify({
-        videoId: String(video?.id)
+        videoId: String(video?.id),
+        fileKey: video?.fileKey,
+        email: video?.user.email,
+        fileName: video?.originalName
       }),
       QueueUrl: envConfig.VIDEO_PROCESSOR_QUEUE_URL
     })

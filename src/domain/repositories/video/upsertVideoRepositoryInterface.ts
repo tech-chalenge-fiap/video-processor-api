@@ -7,6 +7,10 @@ export namespace IUpsertVideoRepository {
     id: number
     status: string | null
     fileKey: string | null
+    originalName: string | null
+    user: {
+      email: string
+    }
   } | null
 }
 
