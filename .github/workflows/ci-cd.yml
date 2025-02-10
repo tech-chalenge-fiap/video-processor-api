@@ -49,7 +49,7 @@ jobs:
   build-and-publish:
     name: Build and Publish Docker Image to ECR
     runs-on: ubuntu-latest
-    needs: [test, sonarcloud]
+    needs: [test]
 
     steps:
       - uses: actions/checkout@v2
