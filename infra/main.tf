@@ -1,23 +1,25 @@
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
 provider "aws" {
   region = "us-east-1"
 }
 
-# S3
-resource "aws_s3_bucket" "videos" {
-  bucket = "fiap-videos"
-}
+#############################
+# VPC - Criação da Rede
+#############################
 
-
-# SQS
-resource "aws_sqs_queue" "video_processing" {
-  name                      = "video-processing"
-  message_retention_seconds = 345600 # 4 dias
-}
-
-# EKS
 module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
+  source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
+
   name = "fiap-vpc"
   cidr = "10.0.0.0/16"
 
@@ -29,6 +31,9 @@ module "vpc" {
   enable_vpn_gateway = false
 }
 
+#############################
+# EKS - Cluster Kubernetes
+#############################
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 19.0"
@@ -37,6 +42,9 @@ module "eks" {
   cluster_version = "1.28"
   vpc_id          = module.vpc.vpc_id
   subnet_ids      = module.vpc.private_subnets
+
+  # Habilita o uso de IRSA (IAM Roles for Service Accounts)
+  enable_irsa = true
 
   eks_managed_node_groups = {
     default = {
@@ -48,20 +56,29 @@ module "eks" {
   }
 }
 
-# RDS MySQL
-resource "aws_db_instance" "mysql" {
-  engine         = "mysql"
-  instance_class = "db.t3.micro"
-  username       = "admin"
-  password       = "fiap-mysql-123!"
-  publicly_accessible = true
-  skip_final_snapshot = true
-  vpc_security_group_ids = [aws_security_group.mysql_sg.id]
-  allocated_storage = 20
+# Data source para obter o OIDC Provider criado pelo módulo EKS
+data "aws_iam_openid_connect_provider" "eks" {
+  url = module.eks.cluster_oidc_issuer_url
 }
 
+#############################
+# ECR - Repositório para Imagens
+#############################
+resource "aws_ecr_repository" "api" {
+  name = "api-repository"
+}
 
-# Security Group para MySQL
+resource "aws_db_subnet_group" "default" {
+  name       = "fiap-db-subnet-group"
+  subnet_ids = module.vpc.private_subnets
+  tags = {
+    Name = "fiap-db-subnet-group"
+  }
+}
+
+#############################
+# Security Group para RDS MySQL
+#############################
 resource "aws_security_group" "mysql_sg" {
   name        = "mysql-security-group"
   description = "Allow MySQL inbound traffic"
@@ -71,7 +88,7 @@ resource "aws_security_group" "mysql_sg" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]  # Restrito à VPC
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -82,26 +99,84 @@ resource "aws_security_group" "mysql_sg" {
   }
 }
 
-# IAM Roles para EKS (IRSA)
+#############################
+# RDS - Instância MySQL
+#############################
+resource "aws_db_instance" "mysql" {
+  engine               = "mysql"
+  instance_class       = "db.t3.micro"
+  username             = "admin"
+  password             = "fiap-mysql-123!"
+  allocated_storage    = 20
+  publicly_accessible  = true
+  skip_final_snapshot  = true
+
+  vpc_security_group_ids = [aws_security_group.mysql_sg.id]
+  db_subnet_group_name    = aws_db_subnet_group.default.name
+
+}
+
+#############################
+# IAM Role para a API (IRSA)
+#############################
+# Este role será associado ao ServiceAccount dos pods da API.
+# Atenção: ajuste o namespace e o nome do service account conforme sua configuração.
 resource "aws_iam_role" "api_role" {
   name = "api-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = { Service = "eks.amazonaws.com" },
-      Action = "sts:AssumeRole"
-    }]
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Federated = data.aws_iam_openid_connect_provider.eks.arn
+        },
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Condition = {
+          StringEquals = {
+            # Remove o "https://" da URL do provider para formar a chave corretamente
+            "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:default:api-serviceaccount"
+          }
+        }
+      }
+    ]
   })
 }
 
-# Permissão para a API acessar S3 e SQS
-resource "aws_iam_role_policy_attachment" "api_s3" {
-  role       = aws_iam_role.api_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+#############################
+# Outputs
+#############################
+output "vpc_id" {
+  description = "ID da VPC criada"
+  value       = module.vpc.vpc_id
 }
 
-resource "aws_iam_role_policy_attachment" "api_sqs" {
-  role       = aws_iam_role.api_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+output "private_subnets" {
+  description = "Subnets privadas da VPC"
+  value       = module.vpc.private_subnets
+}
+
+output "public_subnets" {
+  description = "Subnets públicas da VPC"
+  value       = module.vpc.public_subnets
+}
+
+output "eks_cluster_endpoint" {
+  description = "Endpoint do cluster EKS"
+  value       = module.eks.cluster_endpoint
+}
+
+output "eks_cluster_oidc_issuer_url" {
+  description = "URL do OIDC Issuer do cluster EKS"
+  value       = module.eks.cluster_oidc_issuer_url
+}
+
+output "ecr_repository_url" {
+  description = "URL do repositório ECR para a API"
+  value       = aws_ecr_repository.api.repository_url
+}
+
+output "mysql_endpoint" {
+  description = "Endpoint da instância RDS MySQL"
+  value       = aws_db_instance.mysql.endpoint
 }

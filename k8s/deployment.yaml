@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    reloader.stakater.com/auto: "true"
+    secret.reloader.stakater.com/reload: video-processor
+    kubernetes.io/change-cause: "Updated at $(date)"
+  namespace: fiap
+  name: video-processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: video-processor
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: video-processor
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: video-processor
+          image: "${IMAGE_TAG}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          securityContext:
+            runAsUser: 1000
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "512m"
+            limits:
+              memory: "512Mi"
+              cpu: "512m"
+          envFrom:
+            - configMapRef:
+                name: video-processor-vars
+          readinessProbe:
+              httpGet:
+                  path: /healthcheck
+                  port: 3000
+              initialDelaySeconds: 0
+              timeoutSeconds: 1
+              periodSeconds: 10
+          livenessProbe:
+              httpGet:
+                  path: /healthcheck
+                  port: 3000
+              initialDelaySeconds: 0
+              timeoutSeconds: 1
+              periodSeconds: 10

@@ -23,6 +23,12 @@ export class UpsertVideoRepository implements IUpsertVideoRepository {
         id: true,
         status: true,
         fileKey: true,
+        originalName: true,
+        user: {
+          select: {
+            email: true
+          }
+        }
       }
     })
 

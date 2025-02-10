@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: video-processor-vars
+  namespace: fiap
+  labels:
+    app: video-processor
+data:
+  PORT: "3000"
+  DATABASE_URL: "${DATABASE_URL}"
+  VIDEO_PROCESSOR_QUEUE_URL: "${VIDEO_PROCESSOR_QUEUE_URL}"
+  CLOUD_ACCESS_KEY: "${CLOUD_ACCESS_KEY}"
+  CLOUD_SECRET_KEY: "${CLOUD_SECRET_KEY}"
+  CLOUD_STORAGE_BUCKET: "${CLOUD_STORAGE_BUCKET}"
+  CLOUD_REGION: "${CLOUD_REGION}"

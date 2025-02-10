@@ -1,0 +1,131 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - run: npm install
+
+      - run: npm run build
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: ['build']
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - run: npm install
+
+      - run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/lcov.info
+
+      - id: test_status
+        name: Get Test Status
+        run: echo "TEST_STATUS=${{ steps.test-conclusion.outcome }}" >> $GITHUB_ENV  # Store in environment variable
+
+  build-and-publish:
+    name: Build and Publish Docker Image to ECR
+    runs-on: ubuntu-latest
+    needs: [test, sonarcloud]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: docker/setup-buildx-action@v1
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        name: Configure AWS Credentials
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v1
+        id: login-ecr
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - id: image_tag
+        name: Generate Image Tag
+        run: echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+        shell: bash
+
+      - run: |
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ github.repository }}:${{ env.IMAGE_TAG }} .
+
+      - run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ github.repository }}:${{ env.IMAGE_TAG }}
+
+  deploy-eks:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: [build-and-publish]
+    env:
+      IMAGE_TAG: ${{ needs.build-and-publish.outputs.image_tag }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install envsubst
+        run: sudo apt-get install -y gettext
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        name: Configure AWS Credentials
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Processar ConfigMap com envsubst
+        env:
+          VIDEO_PROCESSOR_QUEUE_URL: ${{ secrets.VIDEO_PROCESSOR_QUEUE_URL }}
+          CLOUD_STORAGE_BUCKET: ${{ secrets.CLOUD_STORAGE_BUCKET }}          
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CLOUD_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          CLOUD_SECRET_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          CLOUD_REGION: ${{ secrets.AWS_REGION }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          # Substitui variáveis no config-map.yaml e gera um novo arquivo
+          envsubst < k8s/config-map.yaml > k8s/resolved-config-map.yaml
+          envsubst < k8s/deployment.yaml > k8s/resolved-deployment.yaml
+          cat k8s/resolved-config-map.yaml
+          cat k8s/resolved-deployment.yaml
+
+      - name: Deploy to Kubernetes cluster
+        uses: kodermax/kubectl-aws-eks@master
+        env:
+          RELEASE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/api-repository/video-processor:${{ env.IMAGE_TAG }}
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+        with:
+
+          args: |
+            apply -f k8s/namespace.yaml
+            apply -f k8s/resolved-config-map.yaml
+            apply -f k8s/resolved-deployment.yaml
+            apply -f k8s/service.yaml
+            apply -f k8s/hpa.yaml
+
