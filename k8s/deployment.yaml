@@ -46,14 +46,14 @@ spec:
                 name: video-processor-vars
           readinessProbe:
               httpGet:
-                  path: /healthcheck
+                  path: /healthCheck
                   port: 3000
               initialDelaySeconds: 0
               timeoutSeconds: 1
               periodSeconds: 10
           livenessProbe:
               httpGet:
-                  path: /healthcheck
+                  path: /healthCheck
                   port: 3000
               initialDelaySeconds: 0
               timeoutSeconds: 1
