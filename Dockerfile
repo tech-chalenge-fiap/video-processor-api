@@ -1,18 +1,19 @@
 FROM node:18
 
-WORKDIR /app
+RUN mkdir -p /home/node/video-processor/node_modules && chown -R node:node /home/node/video-processor
 
-COPY package*.json ./
-COPY prisma/ ./prisma/
+WORKDIR /home/node/video-processor
 
-RUN yarn install && \
-  mkdir -p node_modules/.prisma/client && \
-  chmod -R 777 node_modules/.prisma/client \
-  npx prisma generate
-
-COPY src/ ./src/
+COPY --chown=node:node package*.json ./
+COPY --chown=node:node prisma/ ./prisma/
 
 USER node
+
+COPY --chown=node:node . .
+
+RUN yarn install && \
+  yarn build && \
+  npx prisma generate
 
 EXPOSE 3000
 
