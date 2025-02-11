@@ -28,6 +28,7 @@ describe('UpsertVideoUseCase', () => {
     
     cloudStorageMock = {
       upload: jest.fn().mockResolvedValue('uploaded-file-key'),
+      download: jest.fn().mockResolvedValue('uploaded-file-key'),
     }
     
     cloudMessagingMock = {
@@ -39,13 +40,15 @@ describe('UpsertVideoUseCase', () => {
 
   it('should successfully upload and process video', async () => {
     const params = {
-      userId: 'user123',
+      userId: 123,
       files: [
         {
           fieldname: 'video',
           buffer: Buffer.from('video-buffer'),
           originalname: 'video.mp4',
           mimetype: 'video/mp4',
+          encoding: '7bit',
+          size: 1,
         },
       ],
     }
@@ -67,7 +70,7 @@ describe('UpsertVideoUseCase', () => {
     expect(cloudMessagingMock.send).toHaveBeenCalledWith({
       MessageBody: JSON.stringify({
         videoId: '123',
-        fileKey: 'uploaded-file-key',
+        fileKey: 'file-key',
         email: 'user@example.com',
         fileName: 'video.mp4',
       }),
