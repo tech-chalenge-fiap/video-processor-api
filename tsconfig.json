@@ -6,7 +6,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "allowJs": true,
     "sourceMap": true,
     "declarationDir": "./dist/@types",
@@ -15,10 +15,10 @@
       "src",
       "worker"
     ],
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "*"
+        "src/*"
       ]
     },
     "resolveJsonModule": true,
@@ -42,7 +42,8 @@
     "src",
     "worker",
     "worker/**/*.ts",
-    "tests/features/stepsDefinitions/**/*.ts"
+    "tests/features/stepsDefinitions/**/*.ts",
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
