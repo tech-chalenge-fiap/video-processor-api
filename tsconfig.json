@@ -6,14 +6,15 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "allowJs": true,
     "sourceMap": true,
     "declarationDir": "./dist/@types",
     "declaration": true,
     "rootDirs": [
       "src",
-      "worker"
+      "worker",
+      "prisma"
     ],
     "baseUrl": ".",
     "paths": {
@@ -45,7 +46,9 @@
     "worker",
     "worker/**/*.ts",
     "tests/features/stepsDefinitions/**/*.ts",
-    "src/**/*"
+    "src/**/*",
+    "prisma",
+    "prisma/**/*.ts"
   ],
   "exclude": [
     "node_modules",

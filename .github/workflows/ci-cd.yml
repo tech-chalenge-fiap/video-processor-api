@@ -108,6 +108,8 @@ jobs:
           CLOUD_SECRET_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           CLOUD_REGION: ${{ secrets.AWS_REGION }}
           IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/api-repository:${{ github.sha }}
+          AUTH_PROVIDER_CLIENT_ID: ${{ secrets.AUTH_PROVIDER_CLIENT_ID }} 
+          AUTH_PROVIDER_USER_POOL_ID: ${{ secrets.AUTH_PROVIDER_USER_POOL_ID }}
         run: |
           # Substitui variáveis no config-map.yaml e gera um novo arquivo
 
