@@ -12,7 +12,7 @@
     "db:create": "prisma migrate dev --create-only --name",
     "start": "yarn db:migrate && node -r module-alias/register dist/main/server.js",
     "build": "tsc -p ./tsconfig.build.json",
-    "test": "ts-node tests",
+    "test": "jest --coverage",
     "test:coverage": "c8 yarn test",
     "test:bdd": "npx cucumber-js tests/features --require-module ts-node/register --require tests/features/stepDefinitions/**/*.ts -f @cucumber/pretty-formatter"
   },

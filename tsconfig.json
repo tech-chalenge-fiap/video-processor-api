@@ -32,10 +32,12 @@
     "forceConsistentCasingInFileNames": true,
     "types": [
       "node",
-      "express"
+      "express",
+      "jest"
     ]
   },
   "include": [
+    "src/**/*.ts",
     "**/*.ts",
     "**/*.tsx",
     "**/*.css",
