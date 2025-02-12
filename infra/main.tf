@@ -29,11 +29,38 @@ module "vpc" {
 
   enable_nat_gateway = true
   enable_vpn_gateway = false
+
+  map_public_ip_on_launch = true
+
 }
 
 #############################
 # EKS - Cluster Kubernetes
 #############################
+resource "aws_security_group" "eks_api_sg" {
+  name        = "eks-api-sg"
+  description = "Security group for EKS API"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Libera acesso público temporariamente
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "eks-api-sg"
+  }
+}
+
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 19.0"
@@ -41,7 +68,11 @@ module "eks" {
   cluster_name    = "fiap-cluster"
   cluster_version = "1.28"
   vpc_id          = module.vpc.vpc_id
-  subnet_ids      = module.vpc.private_subnets
+  subnet_ids      = module.vpc.public_subnets 
+
+  cluster_endpoint_public_access  = true      # Novo parâmetro
+
+  cluster_additional_security_group_ids = [aws_security_group.eks_api_sg.id]
 
   # Habilita o uso de IRSA (IAM Roles for Service Accounts)
   enable_irsa = true
@@ -52,6 +83,7 @@ module "eks" {
       min_size       = 1
       max_size       = 3
       desired_size   = 2
+      subnet_ids     = module.vpc.public_subnets  # Ensure node group uses public subnets
     }
   }
 }
@@ -70,7 +102,7 @@ resource "aws_ecr_repository" "api" {
 
 resource "aws_db_subnet_group" "default" {
   name       = "fiap-db-subnet-group"
-  subnet_ids = module.vpc.private_subnets
+  subnet_ids = module.vpc.public_subnets
   tags = {
     Name = "fiap-db-subnet-group"
   }
@@ -141,6 +173,11 @@ resource "aws_iam_role" "api_role" {
       }
     ]
   })
+}
+
+resource "aws_s3_bucket" "fiap_videos" {
+  bucket = "fiap-videos"
+  acl    = "private"
 }
 
 #############################
