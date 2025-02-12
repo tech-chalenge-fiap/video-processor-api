@@ -1,10 +1,35 @@
-  /** @type {import('ts-jest').JestConfigWithTsJest} **/
+require('dotenv').config({
+  path: '.env'
+})
 module.exports = {
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+  roots: ['<rootDir>/tests'],
+  coverageThreshold: {
+    global: {
+      statements: 100,
+      branches: 100,
+      functions: 100,
+      lines: 100
+    }
   },
-  testEnvironment: "node",
+  collectCoverageFrom: [
+    '<rootDir>/src/**/*.ts',
+    '!<rootDir>/src/main/**',
+    '!<rootDir>/src/**/index.ts',
+    '!<rootDir>/src/**/*.protocols.ts',
+    '!<rootDir>/src/domain/usecases/**',
+    '!<rootDir>/src/**/*testHelpers.ts'
+  ],
+  coverageDirectory: 'coverage',
   transform: {
-    "^.+.tsx?$": ["ts-jest",{}],
+    '.+\\.ts$': ['ts-jest',
+      {
+        isolatedModules: true
+      }
+    ]
   },
-};
+  moduleNameMapper: {
+    '@/(.*)': '<rootDir>/src/$1'
+  },
+  setupFiles: ['dotenv/config'],
+  clearMocks: true
+}
