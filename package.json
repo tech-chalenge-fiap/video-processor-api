@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "dev": "tsx watch src/main/server.ts",
     "db:generate": "prisma generate",
@@ -19,6 +22,7 @@
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.738.0",
     "@prisma/client": "6.2.1",
+    "aws-jwt-verify": "^5.0.0",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.7.9",
     "bcrypt": "^5.1.1",

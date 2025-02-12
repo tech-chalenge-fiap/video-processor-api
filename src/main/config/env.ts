@@ -10,4 +10,6 @@ export const envConfig = {
   CLOUD_SECRET_KEY: process.env.CLOUD_SECRET_KEY ?? '',
   CLOUD_STORAGE_BUCKET: process.env.CLOUD_STORAGE_BUCKET,
   CLOUD_REGION: process.env.CLOUD_REGION ?? '',
+  AUTH_PROVIDER_USER_POOL_ID: process.env.AUTH_PROVIDER_USER_POOL_ID ?? '',
+  AUTH_PROVIDER_CLIENT_ID: process.env.AUTH_PROVIDER_CLIENT_ID ?? ''
 }
