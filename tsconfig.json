@@ -47,9 +47,10 @@
     "worker/**/*.ts",
     "tests/features/stepsDefinitions/**/*.ts",
     "src/**/*",
+    "tests",
     "prisma",
     "prisma/**/*.ts"
-  ],
+],
   "exclude": [
     "node_modules",
     "./dist/**/*"

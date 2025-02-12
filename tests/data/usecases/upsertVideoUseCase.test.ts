@@ -1,4 +1,4 @@
-import { UpsertVideoUseCase } from './upsertVideoUseCase'
+import { UpsertVideoUseCase } from '@/data/usecases'
 import { IUpsertVideoRepository, ICloudStorage, ICloudMessaging, IUpsertVideoUseCase } from '@/domain'
 
 jest.mock('@/main/config', () => ({
