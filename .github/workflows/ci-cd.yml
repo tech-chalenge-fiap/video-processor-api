@@ -130,7 +130,7 @@ jobs:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
         with:
           args: |
-            kubectl apply -f k8s/namespace.yaml --validate=false
+            apply -f k8s/namespace.yaml --validate=false
             kubectl apply -f k8s/resolved-config-map.yaml --validate=false
             kubectl apply -f k8s/resolved-deployment.yaml --validate=false
             kubectl apply -f k8s/service.yaml --validate=false
