@@ -91,6 +91,7 @@ yarn test: Run tests with coverage.
 yarn test:coverage: Run tests with coverage using c8.
 yarn test:bdd: Run BDD tests using Cucumber.
 ```
+
 ## Environment Variables
 
 The application requires the following environment variables:
