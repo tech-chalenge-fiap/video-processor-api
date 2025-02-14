@@ -11,7 +11,7 @@ Table of Contents
 - Project Structure
 - License
 
-## Solutions`s architecture
+## Architecture overview
 
 ### General overview
 ![image](https://github.com/user-attachments/assets/52c2524f-07f1-481d-94e3-c3ea4d522682)
